@@ -1,11 +1,17 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import timedelta
+from decimal import Decimal, InvalidOperation 
+from uuid import UUID
 
-from . import models, schemas, auth
+from fastapi import FastAPI, Depends, HTTPException, status, Request
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
 from .database import get_async_session
-
+from .config import SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES
+from .security import generate_signature
+from . import models, schemas, auth
+import logging
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -38,7 +44,7 @@ async def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
         data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
@@ -68,3 +74,123 @@ async def read_user_transactions(
 ):
     transactions = await models.Transaction.get_user_transactions(db, current_user.id)
     return transactions
+
+
+@app.post("/webhook/payment")
+async def handle_webhook(
+    data: schemas.WebhookData,
+    session: AsyncSession = Depends(get_async_session)
+):
+    """Обработчик входящих платежей с проверкой подписи и обработкой транзакций"""
+    
+    # 1. Проверка и нормализация данных
+    try:
+        amount = Decimal(str(data.amount)).quantize(Decimal('0.00'))
+        transaction_id = str(UUID(str(data.transaction_id)))  # Валидация UUID
+    except (InvalidOperation, ValueError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid data format: {str(e)}"
+        )
+
+    # 2. Генерация и проверка подписи
+    expected_sig = generate_signature(
+        account_id=data.account_id,
+        amount=float(amount),  # Передаем float для совместимости
+        transaction_id=transaction_id,
+        user_id=data.user_id,
+        secret_key=SECRET_KEY
+    )
+
+    if data.signature != expected_sig:
+        logger.error(
+            f"Signature mismatch for transaction {transaction_id}\n"
+            f"Expected: {expected_sig}\n"
+            f"Received: {data.signature}\n"
+            f"Data: {data.dict()}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "Invalid signature",
+                "expected": expected_sig,
+                "received": data.signature,
+                "hint": "Check if secret keys match and data formats are identical"
+            }
+        )
+
+    # 3. Проверка существования транзакции
+    if await session.scalar(
+        select(models.Transaction)
+        .where(models.Transaction.transaction_id == transaction_id)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Transaction already processed"
+        )
+
+    # 4. Проверка пользователя
+    if not await session.get(models.User, data.user_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # 5. Получение или создание счета
+    account = await session.scalar(
+        select(models.Account)
+        .where(
+            models.Account.id == data.account_id,
+            models.Account.user_id == data.user_id
+        )
+    )
+    
+    if not account:
+        account = models.Account(
+            id=data.account_id,
+            user_id=data.user_id,
+            balance=Decimal('0.00')
+        )
+        session.add(account)
+
+    # 6. Обновление баланса и создание транзакции
+    try:
+        account.balance += amount
+        
+        transaction = models.Transaction(
+            transaction_id=transaction_id,
+            user_id=data.user_id,
+            account_id=account.id,
+            amount=amount,
+        )
+        session.add(transaction)
+        
+        await session.commit()
+    except Exception as e:
+        await session.rollback()
+        logger.exception("Database transaction failed")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Transaction processing failed"
+        )
+
+    return {
+        "status": "success",
+        "new_balance": str(account.balance),
+        "transaction_id": transaction_id,
+        "account_id": account.id
+    }
+
+
+@app.post("/debug/signature-check")
+async def debug_signature(data: dict):
+    return {
+        "generated": generate_signature(
+            account_id=data['account_id'],
+            amount=data['amount'],
+            transaction_id=data['transaction_id'],
+            user_id=data['user_id'],
+            secret_key=SECRET_KEY
+        ),
+        "input_data": data
+    }

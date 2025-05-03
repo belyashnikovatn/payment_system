@@ -1,6 +1,8 @@
 from pydantic import BaseModel, ConfigDict, EmailStr
 from typing import Optional
 from datetime import datetime
+from pydantic import validator
+from uuid import UUID
 
 
 class Token(BaseModel):
@@ -50,7 +52,23 @@ class Transaction(TransactionBase):
     id: int
     user_id: int
     account_id: int
-    transaction_id: str
+    transaction_id: UUID
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class WebhookData(BaseModel):
+    transaction_id: str
+    user_id: int
+    account_id: int
+    amount: float
+    signature: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @validator('amount')
+    def validate_amount(cls, v):
+        if v <= 0:
+            raise ValueError('Amount must be positive')
+        return round(v, 2)
