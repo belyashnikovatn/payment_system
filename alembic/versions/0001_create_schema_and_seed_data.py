@@ -1,8 +1,8 @@
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.sql import table, column
-from sqlalchemy import String, Integer, Boolean, Numeric
+from sqlalchemy.dialects.postgresql import UUID
 from passlib.context import CryptContext
+import uuid
 
 revision = '0001'
 down_revision = None
@@ -10,7 +10,6 @@ branch_labels = None
 depends_on = None
 
 pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
-
 
 def upgrade():
     op.create_table(
@@ -34,41 +33,29 @@ def upgrade():
     op.create_table(
         'transactions',
         sa.Column('id', sa.Integer, primary_key=True),
-        sa.Column('transaction_id', sa.String, unique=True, index=True),
+        sa.Column('transaction_id', UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False),
         sa.Column('user_id', sa.Integer, sa.ForeignKey('users.id')),
         sa.Column('account_id', sa.Integer, sa.ForeignKey('accounts.id')),
         sa.Column('amount', sa.Numeric),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()')),
     )
 
-    users_table = table(
-        'users',
-        column('id', Integer),
-        column('email', String),
-        column('full_name', String),
-        column('hashed_password', String),
-        column('is_admin', Boolean)
-    )
-
+    # Вставка пользователей
     password_user = pwd_context.hash('userpass')
     password_admin = pwd_context.hash('adminpass')
 
-    op.bulk_insert(users_table, [
-        {'id': 1, 'email': 'testuser@example.com', 'full_name': 'Test User', 'hashed_password': password_user, 'is_admin': False},
-        {'id': 2, 'email': 'admin@example.com', 'full_name': 'Admin User', 'hashed_password': password_admin, 'is_admin': True}
-    ])
+    op.execute(f"""
+        INSERT INTO users (id, email, full_name, hashed_password, is_admin)
+        VALUES
+            (1, 'testuser@example.com', 'Test User', '{password_user}', FALSE),
+            (2, 'admin@example.com', 'Admin User', '{password_admin}', TRUE);
+    """)
 
-    accounts_table = table(
-        'accounts',
-        column('id', Integer),
-        column('user_id', Integer),
-        column('balance', Numeric)
-    )
-
-    op.bulk_insert(accounts_table, [
-        {'id': 1, 'user_id': 1, 'balance': 0}
-    ])
-
+    # Вставка аккаунта
+    op.execute("""
+        INSERT INTO accounts (id, user_id, account_number, balance, created_at)
+        VALUES (1, 1, 'ACC000001', 0, now());
+    """)
 
 def downgrade():
     op.drop_table('transactions')
