@@ -2,22 +2,17 @@ from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import timedelta
-from fastapi import FastAPI, Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import timedelta
 
 from . import models, schemas, auth
 from .database import get_async_session
-from . import models, schemas, auth
-from .database import get_async_session
+
 
 app = FastAPI()
 
 
 @app.get("/", tags=["root"])
 async def read_root() -> dict:
-    return {"message": "Welcome to your blog!"}
+    return {"message": "Welcome to your app!"}
 
 
 @app.post("/token", response_model=schemas.Token)
@@ -28,13 +23,13 @@ async def login_for_access_token(
     form_data = await request.form()
     email = form_data.get("username")
     password = form_data.get("password")
-    
+
     if not email or not password:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email and password are required"
         )
-    
+
     user = await auth.authenticate_user(email, password, db)
     if not user:
         raise HTTPException(
@@ -42,7 +37,7 @@ async def login_for_access_token(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
         data={"sub": str(user.id)}, expires_delta=access_token_expires
