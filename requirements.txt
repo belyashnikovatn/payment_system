@@ -9,3 +9,6 @@ passlib[bcrypt]==1.7.4
 bcrypt==3.2.2
 email-validator
 python-multipart==0.0.6
+pytest
+pytest-asyncio
+httpx
