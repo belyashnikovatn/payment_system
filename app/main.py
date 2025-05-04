@@ -238,3 +238,58 @@ async def create_user(
     await db.refresh(new_user)
     
     return new_user
+
+
+@app.get("/admin/users/{user_id}/accounts", response_model=list[schemas.Account])
+async def read_users_accounts(
+    user_id: int,
+    _: models.User = Depends(auth.get_current_admin),
+    db: AsyncSession = Depends(get_async_session)
+):
+    accounts = await models.Account.get_user_accounts(db, user_id)
+    return accounts
+
+
+@app.put("/admin/users/{user_id}", response_model=schemas.User)
+async def update_user(
+    user_id: int,
+    user: schemas.UserCreate,
+    _: models.User = Depends(auth.get_current_admin),
+    db: AsyncSession = Depends(get_async_session)
+):
+    db_user = await models.User.get_by_id(db, user_id)
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    db_user.email = user.email
+    db_user.full_name = user.full_name
+    if user.password:
+        db_user.hashed_password = auth.get_password_hash(user.password)
+    
+    await db.commit()
+    await db.refresh(db_user)
+    
+    return db_user
+
+
+@app.delete("/admin/users/{user_id}", response_model=schemas.User)
+async def delete_user(
+    user_id: int,
+    _: models.User = Depends(auth.get_current_admin),
+    db: AsyncSession = Depends(get_async_session)
+):
+    db_user = await models.User.get_by_id(db, user_id)
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    await db.delete(db_user)
+    await db.commit()
+    
+    return 
+
