@@ -1,6 +1,8 @@
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation 
 from uuid import UUID
+from uuid import uuid4
+
 
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -182,7 +184,13 @@ async def handle_webhook(
     }
 
 
-@app.post("/debug/signature-check")
+@app.get("/utils/generate-uuid")
+async def generate_uuid():
+    """Генерация корректного UUID v4"""
+    return {"uuid": str(uuid4())}
+
+
+@app.post("/utils/signature-check")
 async def debug_signature(data: dict):
     return {
         "generated": generate_signature(
@@ -194,3 +202,39 @@ async def debug_signature(data: dict):
         ),
         "input_data": data
     }
+
+
+@app.get("/admin/users", response_model=list[schemas.User])
+async def read_users(
+    _: models.User = Depends(auth.get_current_admin),
+    db: AsyncSession = Depends(get_async_session)
+):
+    users = await db.execute(select(models.User))
+    return users.scalars().all()
+
+
+@app.post("/admin/users", response_model=schemas.User)
+async def create_user(
+    user: schemas.UserCreate,
+    _: models.User = Depends(auth.get_current_admin),
+    db: AsyncSession = Depends(get_async_session)
+):
+    db_user = await models.User.get_by_email(db, user.email)
+    if db_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    
+    hashed_password = auth.get_password_hash(user.password)
+    new_user = models.User(
+        email=user.email,
+        full_name=user.full_name,
+        hashed_password=hashed_password
+    )
+    
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+    
+    return new_user
