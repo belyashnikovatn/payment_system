@@ -1,30 +1,37 @@
-from contextlib import asynccontextmanager
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid import uuid4
+from contextlib import asynccontextmanager
+
 
 from fastapi import FastAPI, Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.database import get_async_session
+from app.database import get_async_session, engine
 from app.config import settings
+
 from app.security import generate_signature
 from app import models, schemas, auth
-
 import logging
 import platform
 import asyncio
 
+
 logger = logging.getLogger(__name__)
+
+if platform.system() == "Windows":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Startup logic
+    logger.info("Starting application...")
     yield
-    from app.database import engine
-
+    # Shutdown logic
+    logger.info("Shutting down application...")
     await engine.dispose()
 
 
@@ -38,12 +45,19 @@ async def read_root() -> dict:
 
 @app.post("/token", response_model=schemas.Token)
 async def login_for_access_token(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = Depends(get_async_session),
+    request: Request, db: AsyncSession = Depends(get_async_session)
 ):
-    user = await auth.authenticate_user(
-        form_data.username, form_data.password, db
-    )
+    form_data = await request.form()
+    email = form_data.get("username")
+    password = form_data.get("password")
+
+    if not email or not password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email and password are required",
+        )
+
+    user = await auth.authenticate_user(email, password, db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -72,7 +86,8 @@ async def read_user_accounts(
     current_user: models.User = Depends(auth.get_current_user),
     db: AsyncSession = Depends(get_async_session),
 ):
-    return await models.Account.get_user_accounts(db, current_user.id)
+    accounts = await models.Account.get_user_accounts(db, current_user.id)
+    return accounts
 
 
 @app.get("/users/me/transactions", response_model=list[schemas.Transaction])
@@ -80,7 +95,10 @@ async def read_user_transactions(
     current_user: models.User = Depends(auth.get_current_user),
     db: AsyncSession = Depends(get_async_session),
 ):
-    return await models.Transaction.get_user_transactions(db, current_user.id)
+    transactions = await models.Transaction.get_user_transactions(
+        db, current_user.id
+    )
+    return transactions
 
 
 @app.post("/webhook/payment")
@@ -88,18 +106,22 @@ async def handle_webhook(
     data: schemas.WebhookData,
     session: AsyncSession = Depends(get_async_session),
 ):
+    """Обработчик входящих платежей с проверкой подписи и обработкой транзакций"""
+
+    # 1. Проверка и нормализация данных
     try:
         amount = Decimal(str(data.amount)).quantize(Decimal("0.00"))
-        transaction_id = str(UUID(str(data.transaction_id)))
+        transaction_id = str(UUID(str(data.transaction_id)))  # Валидация UUID
     except (InvalidOperation, ValueError) as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Invalid data format: {str(e)}",
         )
 
+    # 2. Генерация и проверка подписи
     expected_sig = generate_signature(
         account_id=data.account_id,
-        amount=float(amount),
+        amount=float(amount),  # Передаем float для совместимости
         transaction_id=transaction_id,
         user_id=data.user_id,
         secret_key=settings.SECRET_KEY,
@@ -122,6 +144,7 @@ async def handle_webhook(
             },
         )
 
+    # 3. Проверка существования транзакции
     if await session.scalar(
         select(models.Transaction).where(
             models.Transaction.transaction_id == transaction_id
@@ -132,11 +155,13 @@ async def handle_webhook(
             detail="Transaction already processed",
         )
 
+    # 4. Проверка пользователя
     if not await session.get(models.User, data.user_id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
+    # 5. Получение или создание счета
     account = await session.scalar(
         select(models.Account).where(
             models.Account.id == data.account_id,
@@ -150,8 +175,10 @@ async def handle_webhook(
         )
         session.add(account)
 
+    # 6. Обновление баланса и создание транзакции
     try:
         account.balance += amount
+
         transaction = models.Transaction(
             transaction_id=transaction_id,
             user_id=data.user_id,
@@ -159,8 +186,9 @@ async def handle_webhook(
             amount=amount,
         )
         session.add(transaction)
+
         await session.commit()
-    except Exception:
+    except Exception as e:
         await session.rollback()
         logger.exception("Database transaction failed")
         raise HTTPException(
@@ -178,13 +206,12 @@ async def handle_webhook(
 
 @app.get("/utils/generate-uuid")
 async def generate_uuid():
+    """Генерация корректного UUID v4"""
     return {"uuid": str(uuid4())}
 
 
 @app.post("/utils/signature-check")
-async def debug_signature(
-    data: dict,
-):
+async def debug_signature(data: dict):
     return {
         "generated": generate_signature(
             account_id=data["account_id"],
@@ -202,8 +229,8 @@ async def read_users(
     _: models.User = Depends(auth.get_current_admin),
     db: AsyncSession = Depends(get_async_session),
 ):
-    result = await db.execute(select(models.User))
-    return result.scalars().all()
+    users = await db.execute(select(models.User))
+    return users.scalars().all()
 
 
 @app.post("/admin/users", response_model=schemas.User)
@@ -219,14 +246,17 @@ async def create_user(
             detail="Email already registered",
         )
 
+    hashed_password = auth.get_password_hash(user.password)
     new_user = models.User(
         email=user.email,
         full_name=user.full_name,
-        hashed_password=auth.get_password_hash(user.password),
+        hashed_password=hashed_password,
     )
+
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
+
     return new_user
 
 
@@ -238,7 +268,8 @@ async def read_users_accounts(
     _: models.User = Depends(auth.get_current_admin),
     db: AsyncSession = Depends(get_async_session),
 ):
-    return await models.Account.get_user_accounts(db, user_id)
+    accounts = await models.Account.get_user_accounts(db, user_id)
+    return accounts
 
 
 @app.put("/admin/users/{user_id}", response_model=schemas.User)
@@ -256,11 +287,12 @@ async def update_user(
 
     db_user.email = user.email
     db_user.full_name = user.full_name
-    if user.password is not None:
+    if user.password:
         db_user.hashed_password = auth.get_password_hash(user.password)
 
     await db.commit()
     await db.refresh(db_user)
+
     return db_user
 
 
@@ -278,13 +310,13 @@ async def delete_user(
 
     await db.delete(db_user)
     await db.commit()
+
     return db_user
 
 
-if platform.system() == "Windows":
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
 if __name__ == "__main__":
+    import subprocess
     import uvicorn
 
+    subprocess.run(["alembic", "upgrade", "head"])
     uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
