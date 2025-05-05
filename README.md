@@ -24,12 +24,14 @@
 
 ### Для администраторов:
 - Аутентификация через email и пароль.
+- Получение информации о себе (ID, email, полное имя).
 - Управление пользователями (создание, удаление, обновление).
 - Просмотр списка пользователей и их аккаунтов с балансами.
 
 ### Обработка платежей:  
 - Обработка вебхуков от сторонних платёжных систем.
 - Проверка подписи вебхука.
+- Создание счёта, если его нет.
 - Создание транзакции и пополнение баланса пользователя.
 
 ---
@@ -65,19 +67,27 @@ python -m app.main
 pip install pytest pytest-asyncio
 ```
 
-2. Запустите тесты:  
+2. Запустите тесты: 
+```bash 
 python -m pytest tests/
----
-Пример .env файла
-```
-SECRET_KEY=your_secret_key_here
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-DATABASE_URL=postgresql+asyncpg://user:password@localhost/dbname
 ```
 ### В Docker
 ```bash
 docker compose exec app pytest tests
+```
+
+---
+
+## Пример .env файла
+```
+SECRET_KEY=your_secret_key_here
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+# Строка подключения при запуске приложения в Docker
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/fastapi_app
+# Строка подключения при запуске приложения локально
+# DATABASE_URL=postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/fastapi_app
+
 ```
 ---
 ## API Маршруты
@@ -93,7 +103,7 @@ docker compose exec app pytest tests
 - POST /webhook/payment – Обработать входящий платёж.
 ---
 ## Разработчик
-[Беляшникова Таня](https://github.com/belyashnikovatn)
+[Беляшникова Таня](https://github.com/belyashnikovatn)   
 [ТЗ](https://docs.google.com/document/d/1-fvs0LaX2oWPjO6w6Bpglz1Ndy_KrNV7NeNgRlks94k/edit?tab=t.0)
 
 ---
