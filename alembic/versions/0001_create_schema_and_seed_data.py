@@ -105,7 +105,7 @@ def upgrade():
             {
                 "id": 1,
                 "user_id": 1,
-                "account_number": "ACC000001",
+                "account_number": str(uuid.uuid4()),
                 "balance": 1000,
                 "created_at": datetime.utcnow(),
             }
