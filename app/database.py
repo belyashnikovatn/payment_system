@@ -23,5 +23,5 @@ async def get_async_session():
     async with SessionLocal() as session:
         try:
             yield session
-        finally:
-            await session.close()
+        except Exception as e:
+            raise e

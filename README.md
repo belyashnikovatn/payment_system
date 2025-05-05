@@ -33,35 +33,6 @@
 - Создание транзакции и пополнение баланса пользователя.
 
 ---
-
-## Структура проекта
-
-```plaintext
-payment_system/
-├── app/
-│   ├── __init__.py
-│   ├── main.py               # Точка входа в приложение
-│   ├── api/                  # Маршруты API
-│   │   ├── routes/           # Разделение маршрутов по функциональности
-│   │   └── dependencies.py   # Общие зависимости
-│   ├── core/                 # Конфигурация и безопасность
-│   │   ├── config.py         # Настройки приложения
-│   │   └── security.py       # Утилиты для безопасности (JWT, подписи)
-│   ├── db/                   # Работа с базой данных
-│   │   ├── models.py         # SQLAlchemy модели
-│   │   ├── schemas.py        # Pydantic схемы
-│   │   ├── session.py        # Управление сессиями
-│   │   └── migrations/       # Миграции базы данных
-│   ├── services/             # Бизнес-логика
-│   ├── tests/                # Тесты
-│   └── utils/                # Утилиты
-├── .env                      # Переменные окружения
-├── [docker-compose.yml](http://_vscodecontentref_/1)        # Конфигурация Docker Compose
-├── Dockerfile                # Dockerfile для приложения
-├── [requirements.txt](http://_vscodecontentref_/2)          # Зависимости Python
-└── [README.md](http://_vscodecontentref_/3)                 # Документация проекта
-```
----
 ## Развёртывание
 ### С использованием Docker Compose
 1. Убедитесь, что у вас установлены Docker и docker-compose.
@@ -116,6 +87,7 @@ DATABASE_URL=postgresql+asyncpg://user:password@localhost/dbname
 ---
 ## Разработчик
 [Беляшникова Таня](https://github.com/belyashnikovatn)
+[ТЗ](https://docs.google.com/document/d/1-fvs0LaX2oWPjO6w6Bpglz1Ndy_KrNV7NeNgRlks94k/edit?tab=t.0)
 
 ---
 ## Заметки

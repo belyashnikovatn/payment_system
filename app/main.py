@@ -293,4 +293,4 @@ async def delete_user(
     await db.delete(db_user)
     await db.commit()
 
-    return
+    return db_user

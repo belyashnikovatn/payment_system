@@ -27,7 +27,7 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
 
     accounts = relationship("Account", back_populates="user")
-    transactions = relationship("Transaction", back_populates="user")
+    transactions = relationship("Transaction", back_populates="user", lazy="raise_on_sql")
 
     @classmethod
     async def get_by_email(cls, db, email: str):
