@@ -1,16 +1,14 @@
-import os
-from sqlalchemy.ext.asyncio import (  # Импорт из правильного модуля!
+from sqlalchemy.ext.asyncio import (
     AsyncSession,
     create_async_engine,
     async_sessionmaker
 )
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.pool import NullPool  # NullPool импортируется отдельно
-from dotenv import load_dotenv
+from sqlalchemy.pool import NullPool
 
-load_dotenv()
+from app.config import settings
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+
+DATABASE_URL = settings.DATABASE_URL
 
 engine = create_async_engine(
     DATABASE_URL,
@@ -25,8 +23,6 @@ SessionLocal = async_sessionmaker(
     class_=AsyncSession,
     autoflush=False
 )
-
-Base = declarative_base()
 
 
 async def get_async_session():

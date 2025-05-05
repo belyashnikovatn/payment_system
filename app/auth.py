@@ -7,14 +7,16 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from . import models, schemas, config
+from . import models, schemas
 from .database import get_async_session
+from app.config import settings
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
-if not config.SECRET_KEY or not config.ALGORITHM:
+if not settings.SECRET_KEY or not settings.ALGORITHM:
     raise RuntimeError("Missing SECRET_KEY or ALGORITHM in environment")
 
 
@@ -42,7 +44,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(
-        to_encode, config.SECRET_KEY, algorithm=config.ALGORITHM)
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
 
@@ -57,8 +59,8 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, config.SECRET_KEY,
-                             algorithms=[config.ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY,
+                             algorithms=[settings.ALGORITHM])
         user_id = payload.get("sub")
         if user_id is None:
             raise credentials_exception

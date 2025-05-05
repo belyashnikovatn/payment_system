@@ -9,7 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from .database import get_async_session
-from .config import SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES
+from app.config import settings
+# from .config import SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES
 from .security import generate_signature
 from . import models, schemas, auth
 import logging
@@ -46,7 +47,8 @@ async def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expires = timedelta(
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
         data={"sub": str(user.id)}, expires_delta=access_token_expires
     )
@@ -101,7 +103,7 @@ async def handle_webhook(
         amount=float(amount),  # Передаем float для совместимости
         transaction_id=transaction_id,
         user_id=data.user_id,
-        secret_key=SECRET_KEY
+        secret_key=settings.SECRET_KEY
     )
 
     if data.signature != expected_sig:
@@ -198,7 +200,7 @@ async def debug_signature(data: dict):
             amount=data["amount"],
             transaction_id=data["transaction_id"],
             user_id=data["user_id"],
-            secret_key=SECRET_KEY
+            secret_key=settings.SECRET_KEY
         ),
         "input_data": data
     }
