@@ -7,8 +7,8 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from . import models, schemas
-from .database import get_async_session
+from app import models, schemas
+from app.database import get_async_session
 from app.config import settings
 
 

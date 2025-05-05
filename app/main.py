@@ -8,11 +8,11 @@ from fastapi import FastAPI, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from .database import get_async_session
+from app.database import get_async_session
 from app.config import settings
 
-from .security import generate_signature
-from . import models, schemas, auth
+from app.security import generate_signature
+from app import models, schemas, auth
 import logging
 
 logger = logging.getLogger(__name__)
@@ -294,3 +294,25 @@ async def delete_user(
     await db.commit()
 
     return db_user
+
+
+if __name__ == "__main__":
+    import subprocess
+    import uvicorn
+
+    subprocess.run(["alembic", "upgrade", "head"])
+    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
+
+
+import platform
+import asyncio
+
+if platform.system() == "Windows":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    from app.database import engine
+
+    await engine.dispose()

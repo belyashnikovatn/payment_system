@@ -1,13 +1,14 @@
-from app.database import DATABASE_URL
-from app.models import Base
-from sqlalchemy.ext.asyncio import create_async_engine
-from alembic import context
-import asyncio
 import sys
 from pathlib import Path
 
 # Добавляем корень проекта в PYTHONPATH
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from app.database import DATABASE_URL
+from app.models import Base
+from sqlalchemy.ext.asyncio import create_async_engine
+from alembic import context
+import asyncio
 
 # Импортируем после добавления пути
 config = context.config
