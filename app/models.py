@@ -27,16 +27,18 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
 
     accounts = relationship("Account", back_populates="user")
-    transactions = relationship("Transaction", back_populates="user", lazy="raise_on_sql")
+    transactions = relationship(
+        "Transaction", back_populates="user", lazy="raise_on_sql"
+    )
 
     @classmethod
-    async def get_by_email(cls, db, email: str):
+    async def get_by_email(cls, db, email: str) -> "User | None":
         stmt = select(cls).where(cls.email == email)
         result = await db.execute(stmt)
         return result.scalars().first()
 
     @classmethod
-    async def get_by_id(cls, db, user_id: int):
+    async def get_by_id(cls, db, user_id: int) -> "User | None":
         stmt = select(cls).where(cls.id == user_id)
         result = await db.execute(stmt)
         return result.scalars().first()
@@ -48,7 +50,7 @@ class Account(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     account_number = Column(
-        String(20), unique=True, index=True, default=lambda: str(uuid.uuid4())
+        String(36), unique=True, index=True, default=lambda: str(uuid.uuid4())
     )
     balance = Column(Numeric(10, 2), default=0.00)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -57,7 +59,7 @@ class Account(Base):
     transactions = relationship("Transaction", back_populates="account")
 
     @classmethod
-    async def get_user_accounts(cls, db, user_id: int):
+    async def get_user_accounts(cls, db, user_id: int) -> list["Account"]:
         stmt = select(cls).where(cls.user_id == user_id)
         result = await db.execute(stmt)
         return result.scalars().all()
@@ -71,7 +73,11 @@ class Transaction(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     transaction_id = Column(
-        UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False
+        UUID(as_uuid=True),
+        default=uuid.uuid4,
+        unique=True,
+        nullable=False,
+        index=True,
     )
     amount = Column(Numeric(10, 2), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -82,7 +88,9 @@ class Transaction(Base):
     account = relationship("Account", back_populates="transactions")
 
     @classmethod
-    async def get_user_transactions(cls, db, user_id: int):
+    async def get_user_transactions(
+        cls, db, user_id: int
+    ) -> list["Transaction"]:
         stmt = select(cls).where(cls.user_id == user_id)
         result = await db.execute(stmt)
         return result.scalars().all()
