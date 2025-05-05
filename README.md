@@ -94,17 +94,17 @@ DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/fastapi_app
 Пользовательские маршруты:
 - GET /users/me – Получить информацию о текущем пользователе.
 - GET /users/me/accounts – Получить список аккаунтов текущего пользователя.
-- GET /users/me/transactions – Получить список транзакций текущего пользователя.
+- GET /users/me/transactions – Получить список транзакций текущего пользователя.  
 Администраторские маршруты:
 - POST /admin/users – Создать нового пользователя.
 - DELETE /admin/users/{user_id} – Удалить пользователя.
-- PUT /admin/users/{user_id} – Обновить данные пользователя.
+- PUT /admin/users/{user_id} – Обновить данные пользователя.  
 Обработка вебхуков:
 - POST /webhook/payment – Обработать входящий платёж.
 ---
 ## Разработчик
 [Беляшникова Таня](https://github.com/belyashnikovatn)   
-[ТЗ](https://docs.google.com/document/d/1-fvs0LaX2oWPjO6w6Bpglz1Ndy_KrNV7NeNgRlks94k/edit?tab=t.0)
+Требования - [ТЗ](https://docs.google.com/document/d/1-fvs0LaX2oWPjO6w6Bpglz1Ndy_KrNV7NeNgRlks94k/edit?tab=t.0)
 
 ---
 ## Заметки
