@@ -1,5 +1,5 @@
 from datetime import timedelta
-from decimal import Decimal, InvalidOperation 
+from decimal import Decimal, InvalidOperation
 from uuid import UUID
 from uuid import uuid4
 
@@ -84,10 +84,10 @@ async def handle_webhook(
     session: AsyncSession = Depends(get_async_session)
 ):
     """Обработчик входящих платежей с проверкой подписи и обработкой транзакций"""
-    
+
     # 1. Проверка и нормализация данных
     try:
-        amount = Decimal(str(data.amount)).quantize(Decimal('0.00'))
+        amount = Decimal(str(data.amount)).quantize(Decimal("0.00"))
         transaction_id = str(UUID(str(data.transaction_id)))  # Валидация UUID
     except (InvalidOperation, ValueError) as e:
         raise HTTPException(
@@ -146,19 +146,19 @@ async def handle_webhook(
             models.Account.user_id == data.user_id
         )
     )
-    
+
     if not account:
         account = models.Account(
             id=data.account_id,
             user_id=data.user_id,
-            balance=Decimal('0.00')
+            balance=Decimal("0.00")
         )
         session.add(account)
 
     # 6. Обновление баланса и создание транзакции
     try:
         account.balance += amount
-        
+
         transaction = models.Transaction(
             transaction_id=transaction_id,
             user_id=data.user_id,
@@ -166,7 +166,7 @@ async def handle_webhook(
             amount=amount,
         )
         session.add(transaction)
-        
+
         await session.commit()
     except Exception as e:
         await session.rollback()
@@ -194,10 +194,10 @@ async def generate_uuid():
 async def debug_signature(data: dict):
     return {
         "generated": generate_signature(
-            account_id=data['account_id'],
-            amount=data['amount'],
-            transaction_id=data['transaction_id'],
-            user_id=data['user_id'],
+            account_id=data["account_id"],
+            amount=data["amount"],
+            transaction_id=data["transaction_id"],
+            user_id=data["user_id"],
             secret_key=SECRET_KEY
         ),
         "input_data": data
@@ -225,18 +225,18 @@ async def create_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
-    
+
     hashed_password = auth.get_password_hash(user.password)
     new_user = models.User(
         email=user.email,
         full_name=user.full_name,
         hashed_password=hashed_password
     )
-    
+
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
-    
+
     return new_user
 
 
@@ -263,15 +263,15 @@ async def update_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    
+
     db_user.email = user.email
     db_user.full_name = user.full_name
     if user.password:
         db_user.hashed_password = auth.get_password_hash(user.password)
-    
+
     await db.commit()
     await db.refresh(db_user)
-    
+
     return db_user
 
 
@@ -287,9 +287,8 @@ async def delete_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    
+
     await db.delete(db_user)
     await db.commit()
-    
-    return 
 
+    return

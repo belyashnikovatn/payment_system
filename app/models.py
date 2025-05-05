@@ -9,7 +9,7 @@ Base = declarative_base()
 
 
 class User(Base):
-    __tablename__ = 'users'
+    __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(100), unique=True, index=True, nullable=False)
@@ -17,8 +17,8 @@ class User(Base):
     hashed_password = Column(String(100), nullable=False)
     is_admin = Column(Boolean, default=False)
 
-    accounts = relationship('Account', back_populates='user')
-    transactions = relationship('Transaction', back_populates='user')
+    accounts = relationship("Account", back_populates="user")
+    transactions = relationship("Transaction", back_populates="user")
 
     @classmethod
     async def get_by_email(cls, db, email: str):
@@ -34,17 +34,17 @@ class User(Base):
 
 
 class Account(Base):
-    __tablename__ = 'accounts'
+    __tablename__ = "accounts"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('users.id'))
+    user_id = Column(Integer, ForeignKey("users.id"))
     account_number = Column(String(20), unique=True,
                             index=True, default=lambda: str(uuid.uuid4()))
     balance = Column(Numeric(10, 2), default=0.00)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    user = relationship('User', back_populates='accounts')
-    transactions = relationship('Transaction', back_populates='account')
+    user = relationship("User", back_populates="accounts")
+    transactions = relationship("Transaction", back_populates="account")
 
     @classmethod
     async def get_user_accounts(cls, db, user_id: int):
@@ -54,18 +54,20 @@ class Account(Base):
 
 
 class Transaction(Base):
-    __tablename__ = 'transactions'
-    __table_args__ = (UniqueConstraint('transaction_id', name='uniq_transaction'),)
+    __tablename__ = "transactions"
+    __table_args__ = (UniqueConstraint(
+        "transaction_id", name="uniq_transaction"),)
 
     id = Column(Integer, primary_key=True, index=True)
-    transaction_id = Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False)
+    transaction_id = Column(
+        UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    account_id = Column(Integer, ForeignKey('accounts.id'), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    user = relationship('User', back_populates='transactions')
-    account = relationship('Account', back_populates='transactions')
+    user = relationship("User", back_populates="transactions")
+    account = relationship("Account", back_populates="transactions")
 
     @classmethod
     async def get_user_transactions(cls, db, user_id: int):

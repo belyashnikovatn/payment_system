@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv('DATABASE_URL')
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_async_engine(
     DATABASE_URL,
@@ -27,6 +27,7 @@ SessionLocal = async_sessionmaker(
 )
 
 Base = declarative_base()
+
 
 async def get_async_session():
     async with SessionLocal() as session:

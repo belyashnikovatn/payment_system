@@ -75,7 +75,7 @@ def upgrade():
         }
     ])
 
-    # Вставка аккаунта
+    # Вставка счёта
     accounts_table = sa.table(
         'accounts',
         sa.column('id', sa.Integer),

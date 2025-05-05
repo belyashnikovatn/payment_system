@@ -67,8 +67,8 @@ class WebhookData(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    @validator('amount')
+    @validator("amount")
     def validate_amount(cls, v):
         if v <= 0:
-            raise ValueError('Amount must be positive')
+            raise ValueError("Amount must be positive")
         return round(v, 2)
