@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict, EmailStr
 from typing import Optional
 from datetime import datetime
-from pydantic import validator
+from pydantic import field_validator
 from uuid import UUID
 
 
@@ -67,7 +67,7 @@ class WebhookData(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    @validator("amount")
+    @field_validator("amount")
     def validate_amount(cls, v):
         if v <= 0:
             raise ValueError("Amount must be positive")

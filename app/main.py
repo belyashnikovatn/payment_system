@@ -11,7 +11,6 @@ from sqlalchemy.future import select
 from .database import get_async_session
 from app.config import settings
 
-# from .config import SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES
 from .security import generate_signature
 from . import models, schemas, auth
 import logging
