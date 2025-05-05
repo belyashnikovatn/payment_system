@@ -9,14 +9,14 @@ def test_webhook_payment(client):
         amount=50.0,
         transaction_id="00000000-0000-0000-0000-000000000050",
         user_id=1,
-        secret_key=settings.SECRET_KEY
+        secret_key=settings.SECRET_KEY,
     )
     data = {
         "account_id": 1,
         "amount": 50.0,
         "transaction_id": "00000000-0000-0000-0000-000000000050",
         "user_id": 1,
-        "signature": sig
+        "signature": sig,
     }
 
     response = client.post("/webhook/payment", json=data)

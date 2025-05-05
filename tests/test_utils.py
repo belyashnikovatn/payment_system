@@ -12,7 +12,7 @@ def test_signature_check(client):
         "account_id": 1,
         "amount": 99.9,
         "transaction_id": "00000000-0000-0000-0000-000000000099",
-        "user_id": 2
+        "user_id": 2,
     }
     res = client.post("/utils/signature-check", json=data)
     assert res.status_code == 200

@@ -1,4 +1,14 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, Numeric, DateTime, select, UniqueConstraint
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    ForeignKey,
+    Boolean,
+    Numeric,
+    DateTime,
+    select,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
@@ -38,8 +48,9 @@ class Account(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    account_number = Column(String(20), unique=True,
-                            index=True, default=lambda: str(uuid.uuid4()))
+    account_number = Column(
+        String(20), unique=True, index=True, default=lambda: str(uuid.uuid4())
+    )
     balance = Column(Numeric(10, 2), default=0.00)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -55,12 +66,14 @@ class Account(Base):
 
 class Transaction(Base):
     __tablename__ = "transactions"
-    __table_args__ = (UniqueConstraint(
-        "transaction_id", name="uniq_transaction"),)
+    __table_args__ = (
+        UniqueConstraint("transaction_id", name="uniq_transaction"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     transaction_id = Column(
-        UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False)
+        UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False
+    )
     amount = Column(Numeric(10, 2), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False)

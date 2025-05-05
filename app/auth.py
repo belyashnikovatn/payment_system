@@ -30,7 +30,9 @@ def get_password_hash(password: str):
     return pwd_context.hash(password)
 
 
-async def authenticate_user(email: str, password: str, db: AsyncSession) -> Optional[models.User]:
+async def authenticate_user(
+    email: str, password: str, db: AsyncSession
+) -> Optional[models.User]:
     """Authenticate a user by email and password."""
     user = await models.User.get_by_email(db, email)
     if not user or not verify_password(password, user.hashed_password):
@@ -38,19 +40,22 @@ async def authenticate_user(email: str, password: str, db: AsyncSession) -> Opti
     return user
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(
+    data: dict, expires_delta: Optional[timedelta] = None
+) -> str:
     """Create a JWT access token with an expiration time."""
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(
-        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
     return encoded_jwt
 
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
-    db: AsyncSession = Depends(get_async_session)
+    db: AsyncSession = Depends(get_async_session),
 ) -> models.User:
     """Get the current user from the JWT token."""
     credentials_exception = HTTPException(
@@ -59,8 +64,9 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY,
-                             algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
         user_id = payload.get("sub")
         if user_id is None:
             raise credentials_exception
@@ -74,7 +80,9 @@ async def get_current_user(
     return user
 
 
-async def get_current_admin(current_user: models.User = Depends(get_current_user)) -> models.User:
+async def get_current_admin(
+    current_user: models.User = Depends(get_current_user),
+) -> models.User:
     """Get the current admin user."""
     if not current_user.is_admin:
         raise HTTPException(
