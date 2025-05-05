@@ -1,3 +1,4 @@
+import uuid
 import pytest
 
 
@@ -8,10 +9,11 @@ def test_generate_uuid(client):
 
 
 def test_signature_check(client):
+    transaction_id = str(uuid.uuid4())
     data = {
         "account_id": 1,
         "amount": 99.9,
-        "transaction_id": "00000000-0000-0000-0000-000000000099",
+        "transaction_id": transaction_id,
         "user_id": 2,
     }
     res = client.post("/utils/signature-check", json=data)
