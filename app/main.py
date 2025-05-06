@@ -313,10 +313,23 @@ async def delete_user(
 
     return db_user
 
+import asyncio
+import uvicorn
+
+from app.database import engine
+from alembic.config import Config
+from alembic import command
+from pathlib import Path
+
+
+def run_alembic_migrations():
+    # Путь до alembic.ini
+    alembic_cfg = Config(str(Path(__file__).resolve().parent.parent / "alembic.ini"))
+    alembic_cfg.set_main_option("script_location", "alembic")
+    alembic_cfg.set_main_option("sqlalchemy.url", str(engine.url))
+    command.upgrade(alembic_cfg, "head")
+
 
 if __name__ == "__main__":
-    import subprocess
-    import uvicorn
-
-    subprocess.run(["alembic", "upgrade", "head"])
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
+    run_alembic_migrations()
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

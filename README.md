@@ -47,7 +47,16 @@ docker compose up --build
 
 ### Без Docker Compose
 1. Убедитесь, что у вас установлен Python 3.9.
-1. Убедитесь, что у вас установлен и запущен PostgreSQL, создайте базу и подключение.
+1. Убедитесь, что у вас установлен и запущен PostgreSQL, создайте базу и подключение со следующими настройками.
+
+| Параметр       | Значение            |
+|----------------|---------------------|
+| Name           | fastapi_app         |
+| Host name/address | 127.0.0.1         |
+| Port           | 5432                |
+| Username       | postgres            |
+| Password       | (your_password)     |
+
 2. Установите зависимости:
 ```bash
 pip install -r requirements.txt
@@ -94,11 +103,13 @@ DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/fastapi_app
 Пользовательские маршруты:
 - GET /users/me – Получить информацию о текущем пользователе.
 - GET /users/me/accounts – Получить список аккаунтов текущего пользователя.
-- GET /users/me/transactions – Получить список транзакций текущего пользователя.  
+- GET /users/me/transactions – Получить список транзакций текущего пользователя.   
+
 Администраторские маршруты:
 - POST /admin/users – Создать нового пользователя.
 - DELETE /admin/users/{user_id} – Удалить пользователя.
 - PUT /admin/users/{user_id} – Обновить данные пользователя.  
+
 Обработка вебхуков:
 - POST /webhook/payment – Обработать входящий платёж.
 ---

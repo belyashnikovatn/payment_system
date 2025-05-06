@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 
 class Settings:
@@ -11,7 +11,7 @@ class Settings:
         os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30)
     )
     DATABASE_URL: str = os.getenv(
-        "DATABASE_URL", "postgresql+asyncpg://user:password@localhost/dbname"
+        "DATABASE_URL", "sqlite+aiosqlite:///./test.db"
     )
 
 
