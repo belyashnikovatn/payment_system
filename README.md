@@ -111,7 +111,10 @@ DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/fastapi_app
 - PUT /admin/users/{user_id} – Обновить данные пользователя.  
 
 Обработка вебхуков:
-- POST /webhook/payment – Обработать входящий платёж.
+- POST /webhook/payment – Обработать входящий платёж.  
+
+Полная документации на API находится здесь http://localhost:8000/docs 
+
 ---
 ## Разработчик
 [Беляшникова Таня](https://github.com/belyashnikovatn)   
